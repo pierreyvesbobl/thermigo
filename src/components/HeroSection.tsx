@@ -46,6 +46,90 @@ export function HeroSection() {
   const cardItemsRef = useRef<(HTMLDivElement | null)[]>([])
   const pathDataRef = useRef<PathData[]>([])
 
+  // Mobile refs
+  const mobileContainerRef = useRef<HTMLDivElement>(null)
+  const mobileSvgContainerRef = useRef<HTMLDivElement>(null)
+  const mobileBuildingEndRef = useRef<HTMLDivElement>(null)
+  const mobilePinRef = useRef<HTMLImageElement>(null)
+  const mobilePathDataRef = useRef<PathData[]>([])
+
+  // Mobile building animation
+  useEffect(() => {
+    const container = mobileContainerRef.current
+    const svgContainer = mobileSvgContainerRef.current
+    const buildingEnd = mobileBuildingEndRef.current
+    const pin = mobilePinRef.current
+    if (!container || !svgContainer || !buildingEnd || !pin) return
+
+    const feather = 12
+
+    fetch('/building_pipes.svg')
+      .then(r => r.text())
+      .then(svgText => {
+        const hiddenSvg = svgText.replace(
+          '</defs>',
+          `<style>#Layer_4 path { stroke-dasharray: 9999; stroke-dashoffset: 9999; }</style></defs>`
+        )
+        svgContainer.innerHTML = hiddenSvg
+        const svg = svgContainer.querySelector('svg')
+        if (!svg) return
+
+        svg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%'
+        svgContainer.style.opacity = '1'
+
+        const layer4 = svg.querySelector('#Layer_4')
+        if (!layer4) return
+
+        const paths = Array.from(layer4.querySelectorAll<SVGPathElement>('path'))
+
+        mobilePathDataRef.current = paths
+          .map(path => {
+            const length = path.getTotalLength()
+            const bbox = path.getBBox()
+            path.style.strokeDasharray = String(length)
+            path.style.strokeDashoffset = String(length)
+            return { el: path, length, bottomY: bbox.y + bbox.height }
+          })
+          .sort((a, b) => b.bottomY - a.bottomY)
+
+        handleMobileScroll()
+      })
+
+    const handleMobileScroll = () => {
+      const rect = container.getBoundingClientRect()
+      const vh = window.innerHeight
+      // progress: 0 quand le haut de la section atteint le bas du viewport,
+      // 1 quand le bas de la section atteint le haut du viewport
+      const totalTravel = rect.height + vh
+      const progress = Math.max(0, Math.min(1, (vh - rect.top) / totalTravel))
+
+      // Phase 1 (0 → 0.5) : tracé des tuyaux
+      const phase1 = Math.min(1, progress / 0.5)
+      const paths = mobilePathDataRef.current
+      const n = paths.length
+      paths.forEach(({ el, length }, i) => {
+        const stagger = n > 1 ? (i / (n - 1)) * 0.6 : 0
+        const p = Math.max(0, Math.min(1, (phase1 - stagger) / 0.4))
+        el.style.strokeDashoffset = String(length * (1 - p))
+      })
+
+      // Phase 2 (0.3 → 0.7) : building_end masque
+      const phase2 = Math.max(0, Math.min(1, (progress - 0.3) / 0.4))
+      const p2 = phase2 * 110
+      const mask = `linear-gradient(to bottom, black ${p2 - feather}%, transparent ${p2}%)`
+      buildingEnd.style.maskImage = mask
+      buildingEnd.style.webkitMaskImage = mask
+
+      // Phase 3 (0.65 → 0.8) : pin apparaît
+      pin.style.opacity = String(Math.max(0, Math.min(1, (progress - 0.65) / 0.15)))
+    }
+
+    window.addEventListener('scroll', handleMobileScroll, { passive: true })
+    handleMobileScroll()
+    return () => window.removeEventListener('scroll', handleMobileScroll)
+  }, [])
+
+  // Desktop building animation
   useEffect(() => {
     const container = containerRef.current
     const svgContainer = svgContainerRef.current
@@ -209,22 +293,50 @@ export function HeroSection() {
           </div>
         </section>
 
-        {/* Building (statique sur mobile) */}
-        <section className="relative bg-white" style={{ height: '80vh' }}>
-          <div className="absolute inset-0 flex items-center justify-center">
+        {/* Building (animé au scroll sur mobile) */}
+        <section
+          ref={mobileContainerRef}
+          className="relative bg-white"
+          style={{ height: '80vh' }}
+        >
+          <div className="absolute inset-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/building_end.webp"
-              alt="Bâtiment Thermigo"
+              src="/building_start.webp"
+              alt="Bâtiment — structure intérieure"
               className="w-full h-full object-contain object-center"
             />
           </div>
+
+          <div
+            ref={mobileSvgContainerRef}
+            className="absolute inset-0"
+          />
+
+          <div
+            ref={mobileBuildingEndRef}
+            className="absolute inset-0"
+            style={{
+              maskImage: 'linear-gradient(to bottom, black -12%, transparent 0%)',
+              WebkitMaskImage: 'linear-gradient(to bottom, black -12%, transparent 0%)',
+              willChange: 'mask-image',
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/building_end.webp"
+              alt="Bâtiment — façade extérieure"
+              className="w-full h-full object-contain object-center"
+            />
+          </div>
+
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
+            ref={mobilePinRef}
             src="/pin_icon_thermigo.webp"
             alt="Pin Thermigo"
             className="absolute left-1/2 -translate-x-1/2"
-            style={{ top: '20px', width: '70px' }}
+            style={{ top: '20px', width: '70px', opacity: 0, willChange: 'opacity' }}
           />
         </section>
       </div>
