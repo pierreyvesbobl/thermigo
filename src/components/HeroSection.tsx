@@ -113,10 +113,10 @@ export function HeroSection() {
         el.style.strokeDashoffset = String(length * (1 - p))
       })
 
-      // Phase 2 (0.3 → 0.7) : building_end masque
+      // Phase 2 (0.3 → 0.7) : building_end masque (bas → haut)
       const phase2 = Math.max(0, Math.min(1, (progress - 0.3) / 0.4))
-      const p2 = phase2 * 110
-      const mask = `linear-gradient(to bottom, black ${p2 - feather}%, transparent ${p2}%)`
+      const p2 = (1 - phase2) * 110
+      const mask = `linear-gradient(to bottom, transparent ${p2 - feather}%, black ${p2}%)`
       buildingEnd.style.maskImage = mask
       buildingEnd.style.webkitMaskImage = mask
 
@@ -192,10 +192,10 @@ export function HeroSection() {
         el.style.strokeDashoffset = String(length * (1 - p))
       })
 
-      // Phase 2 (0.33 → 0.70) : building_end masque
+      // Phase 2 (0.33 → 0.70) : building_end masque (bas → haut)
       const phase2 = Math.max(0, Math.min(1, (progress - 0.33) / 0.37))
-      const p2 = phase2 * 110
-      const mask = `linear-gradient(to bottom, black ${p2 - feather}%, transparent ${p2}%)`
+      const p2 = (1 - phase2) * 110
+      const mask = `linear-gradient(to bottom, transparent ${p2 - feather}%, black ${p2}%)`
       buildingEnd.style.maskImage = mask
       buildingEnd.style.webkitMaskImage = mask
 
@@ -317,8 +317,8 @@ export function HeroSection() {
             ref={mobileBuildingEndRef}
             className="absolute inset-0"
             style={{
-              maskImage: 'linear-gradient(to bottom, black -12%, transparent 0%)',
-              WebkitMaskImage: 'linear-gradient(to bottom, black -12%, transparent 0%)',
+              maskImage: 'linear-gradient(to bottom, transparent 100%, black 112%)',
+              WebkitMaskImage: 'linear-gradient(to bottom, transparent 100%, black 112%)',
               willChange: 'mask-image',
             }}
           >
